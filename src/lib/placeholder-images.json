@@ -23,6 +23,42 @@
       "description": "Reference seal for Delhi University",
       "imageUrl": "https://picsum.photos/seed/seal2/150/150",
       "imageHint": "seal stamp"
+    },
+    {
+      "id": "mumbai_signature",
+      "description": "Reference signature for Mumbai University",
+      "imageUrl": "https://picsum.photos/seed/sig3/200/50",
+      "imageHint": "signature"
+    },
+    {
+      "id": "mumbai_seal",
+      "description": "Reference seal for Mumbai University",
+      "imageUrl": "https://picsum.photos/seed/seal3/150/150",
+      "imageHint": "seal stamp"
+    },
+    {
+      "id": "maharashtra_signature",
+      "description": "Reference signature for Maharashtra Board",
+      "imageUrl": "https://picsum.photos/seed/sig4/200/50",
+      "imageHint": "signature"
+    },
+    {
+      "id": "maharashtra_seal",
+      "description": "Reference seal for Maharashtra Board",
+      "imageUrl": "https://picsum.photos/seed/seal4/150/150",
+      "imageHint": "seal stamp"
+    },
+    {
+      "id": "pune_signature",
+      "description": "Reference signature for Pune University",
+      "imageUrl": "https://picsum.photos/seed/sig5/200/50",
+      "imageHint": "signature"
+    },
+    {
+      "id": "pune_seal",
+      "description": "Reference seal for Pune University",
+      "imageUrl": "https://picsum.photos/seed/seal5/150/150",
+      "imageHint": "seal stamp"
     }
   ]
 }
