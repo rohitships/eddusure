@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "ranchi_signature",
+      "description": "Reference signature for Ranchi University",
+      "imageUrl": "https://picsum.photos/seed/sig1/200/50",
+      "imageHint": "signature"
+    },
+    {
+      "id": "ranchi_seal",
+      "description": "Reference seal for Ranchi University",
+      "imageUrl": "https://picsum.photos/seed/seal1/150/150",
+      "imageHint": "seal stamp"
+    },
+    {
+      "id": "delhi_signature",
+      "description": "Reference signature for Delhi University",
+      "imageUrl": "https://picsum.photos/seed/sig2/200/50",
+      "imageHint": "signature"
+    },
+    {
+      "id": "delhi_seal",
+      "description": "Reference seal for Delhi University",
+      "imageUrl": "https://picsum.photos/seed/seal2/150/150",
+      "imageHint": "seal stamp"
+    }
+  ]
 }
