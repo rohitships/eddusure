@@ -41,9 +41,18 @@ const GenerateTrustScoreOutputSchema = z.object({
   TrustScore: z.number().describe(
     'A final, weighted-average confidence score.'
   ),
-  summary: z.string().describe('A brief, one-sentence summary of the findings.'),
+  summary: z.string().describe('A brief, one-sentence summary of your findings.'),
   flags: z.array(z.string()).describe('An array of strings describing any detected issues.'),
-  analysisResult: z.record(z.any()).describe('The full JSON object returned by the Gemini API.'),
+  analysisResult: z.object({
+    structuralScore: z.number().describe('A float between 0.0 and 1.0.'),
+    signatureScore: z.number().describe('A float between 0.0 and 1.0.'),
+    typographicalScore: z.number().describe('A float between 0.0 and 1.0.'),
+    TrustScore: z.number().describe(
+      'A final, weighted-average confidence score.'
+    ),
+    summary: z.string().describe('A brief, one-sentence summary of your findings.'),
+    flags: z.array(z.string()).describe('An array of strings describing any detected issues.'),
+  }).describe('The full JSON object returned by the Gemini API.'),
 });
 export type GenerateTrustScoreOutput = z.infer<typeof GenerateTrustScoreOutputSchema>;
 
@@ -129,19 +138,34 @@ const generateTrustScoreFlow = ai.defineFlow(
   async input => {
     const {output} = await prompt(input);
 
-    // Attempt to parse the JSON output
+    if (!output) {
+      throw new Error('AI analysis failed to return a valid result.');
+    }
+
     try {
-      const analysisResult = JSON.parse(output!.summary);
+      const analysisResult = output.analysisResult
       return {
-        ...output!,
+        ...output,
         analysisResult,
       };
     } catch (error) {
-      // If parsing fails, return the original output and the raw summary
-      console.error('Failed to parse JSON from summary:', error);
+      console.error('Failed to process AI output:', error);
+      // If processing fails, return a structured error response
       return {
-        ...output!,
-        analysisResult: {rawOutput: output!.summary},
+        structuralScore: 0,
+        signatureScore: 0,
+        typographicalScore: 0,
+        TrustScore: 0,
+        summary: 'Failed to process analysis.',
+        flags: ['Error in AI response processing.'],
+        analysisResult: {
+          structuralScore: 0,
+          signatureScore: 0,
+          typographicalScore: 0,
+          TrustScore: 0,
+          summary: 'Raw output was not valid.',
+          flags: [],
+        },
       };
     }
   }

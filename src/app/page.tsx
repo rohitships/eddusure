@@ -41,7 +41,7 @@ export default function TrustCheckPage() {
       };
 
       const result = await generateTrustScore(input);
-      if (!result.TrustScore) {
+      if (result.TrustScore === undefined || result.TrustScore === null) {
         throw new Error('AI analysis failed to return a valid result. Please try a different file.');
       }
 
