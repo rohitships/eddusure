@@ -18,7 +18,10 @@ const formSchema = z.object({
   file: z
     .instanceof(File)
     .refine((file) => file.size > 0, 'Please upload a file.')
-    .refine((file) => file.type === 'application/pdf', 'Only PDF files are allowed.')
+    .refine(
+      (file) => ['application/pdf', 'image/png', 'image/jpeg'].includes(file.type),
+      'Only PDF, PNG, and JPEG files are allowed.'
+    )
     .refine((file) => file.size < 10 * 1024 * 1024, 'File size must be less than 10MB.'),
 });
 
@@ -49,7 +52,7 @@ export default function UploadForm({ onAnalyze, isLoading }: UploadFormProps) {
     <Card>
       <CardHeader>
         <CardTitle>Validate a Certificate</CardTitle>
-        <CardDescription>Select a template and upload the certificate PDF for analysis.</CardDescription>
+        <CardDescription>Select a template and upload the certificate for analysis.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -84,14 +87,14 @@ export default function UploadForm({ onAnalyze, isLoading }: UploadFormProps) {
               name="file"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Certificate PDF</FormLabel>
+                  <FormLabel>Certificate Document</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <input
                         type="file"
                         id="file-upload"
                         className="absolute w-0 h-0 opacity-0"
-                        accept=".pdf"
+                        accept=".pdf,.png,.jpeg,.jpg"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
@@ -119,7 +122,7 @@ export default function UploadForm({ onAnalyze, isLoading }: UploadFormProps) {
                             <p className="mt-2 text-sm text-foreground">
                               <span className="font-semibold">Click to upload</span> or drag and drop
                             </p>
-                            <p className="mt-1 text-xs text-muted-foreground">PDF only (max 10MB)</p>
+                            <p className="mt-1 text-xs text-muted-foreground">PDF, PNG, JPEG (max 10MB)</p>
                           </div>
                         )}
                       </label>
