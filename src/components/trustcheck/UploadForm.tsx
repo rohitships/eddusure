@@ -5,13 +5,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, UploadCloud, File as FileIcon } from 'lucide-react';
-import { goldenTemplates } from '@/lib/templates';
 import type { GoldenTemplate } from '@/lib/types';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '../ui/skeleton';
 
 const formSchema = z.object({
   templateId: z.string().min(1, 'Please select a certificate template.'),
@@ -32,6 +34,14 @@ type UploadFormProps = {
 
 export default function UploadForm({ onAnalyze, isLoading }: UploadFormProps) {
   const [fileName, setFileName] = useState('');
+  const firestore = useFirestore();
+
+  const templatesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'golden_templates');
+  }, [firestore]);
+
+  const { data: goldenTemplates, isLoading: isLoadingTemplates } = useCollection<GoldenTemplate>(templatesQuery);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -42,7 +52,7 @@ export default function UploadForm({ onAnalyze, isLoading }: UploadFormProps) {
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    const template = goldenTemplates.find((t) => t.id === values.templateId);
+    const template = goldenTemplates?.find((t) => t.id === values.templateId);
     if (template && values.file) {
       onAnalyze({ file: values.file, template });
     }
@@ -63,20 +73,24 @@ export default function UploadForm({ onAnalyze, isLoading }: UploadFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Certificate Template</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                   {isLoadingTemplates ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || isLoadingTemplates}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a university and degree..." />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {goldenTemplates.map((template) => (
+                      {goldenTemplates?.map((template) => (
                         <SelectItem key={template.id} value={template.id}>
                           {`${template.universityName} - ${template.degreeName} ${template.year}`}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

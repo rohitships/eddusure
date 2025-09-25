@@ -3,6 +3,8 @@ import { PlaceHolderImages } from './placeholder-images';
 
 const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl || '';
 
+// This static array is no longer the source of truth.
+// It can be used for seeding the database initially or for local development fallback.
 export const goldenTemplates: GoldenTemplate[] = [
   {
     id: 'ranchi_university_btech_cse_2024',
