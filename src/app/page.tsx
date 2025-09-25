@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { generateTrustScore, type GenerateTrustScoreInput } from '@/ai/flows/generate-trust-score';
 import type { AnalysisResult, Activity, GoldenTemplate } from '@/lib/types';
@@ -12,6 +12,10 @@ import ActivityTracker from '@/components/trustcheck/ActivityTracker';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { collection } from 'firebase/firestore';
+import { Sidebar, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from '@/components/ui/sidebar';
+import Auth from '@/components/trustcheck/Auth';
+import { ShieldCheck } from 'lucide-react';
+
 
 export default function TrustCheckPage() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
@@ -138,22 +142,41 @@ export default function TrustCheckPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col">
-      <Header />
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <div className="lg:col-span-3">
-            <UploadOrScan onAnalyze={handleAnalysis} isLoading={isLoading} onScan={handleScannedData} />
-          </div>
-          <div className="lg:col-span-4">
-            <ResultsDisplay
-              isLoading={isLoading}
-              result={analysisResult}
-              error={error}
-            />
-          </div>
-        </div>
-        <ActivityTracker />
-      </main>
+       <Sidebar>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton href="#" isActive>
+                    <ShieldCheck />
+                    TrustCheck
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter>
+            <Auth />
+        </SidebarFooter>
+      </Sidebar>
+      <div className="flex flex-col flex-1">
+        <Header />
+        <SidebarInset>
+          <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+              <div className="lg:col-span-3">
+                <UploadOrScan onAnalyze={handleAnalysis} isLoading={isLoading} onScan={handleScannedData} />
+              </div>
+              <div className="lg:col-span-4">
+                <ResultsDisplay
+                  isLoading={isLoading}
+                  result={analysisResult}
+                  error={error}
+                />
+              </div>
+            </div>
+            <ActivityTracker />
+          </main>
+        </SidebarInset>
+      </div>
     </div>
   );
 }

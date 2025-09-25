@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -26,7 +27,9 @@ export default function RootLayout({
       </head>
       <body className={cn('font-body antialiased', inter.variable)}>
         <FirebaseClientProvider>
-          {children}
+          <SidebarProvider>
+            {children}
+          </SidebarProvider>
         </FirebaseClientProvider>
         <Toaster />
       </body>
