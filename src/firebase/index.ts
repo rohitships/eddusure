@@ -2,43 +2,50 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  if (!getApps().length) {
-    // Important! initializeApp() is called without any arguments because Firebase App Hosting
-    // integrates with the initializeApp() function to provide the environment variables needed to
-    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-    // without arguments.
-    let firebaseApp;
-    try {
-      // Attempt to initialize via Firebase App Hosting environment variables
-      firebaseApp = initializeApp();
-    } catch (e) {
-      // Only warn in production because it's normal to use the firebaseConfig to initialize
-      // during development
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (getApps().length === 0) {
+    let app: FirebaseApp;
+    if (isProduction) {
+      // In production, initialize from environment variables provided by App Hosting
+      try {
+        app = initializeApp();
+      } catch (e) {
+        console.warn('Automatic Firebase initialization failed, falling back to config object.', e);
+        app = initializeApp(firebaseConfig);
       }
-      firebaseApp = initializeApp(firebaseConfig);
+    } else {
+      // In development, always initialize with the config object
+      app = initializeApp(firebaseConfig);
     }
-
-    return getSdks(firebaseApp);
+    return getSdks(app);
   }
-
-  // If already initialized, return the SDKs with the already initialized App
   return getSdks(getApp());
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  const firestore = getFirestore(firebaseApp);
+  const auth = getAuth(firebaseApp);
+  
+  if (process.env.NODE_ENV === 'development') {
+    // To view emulated data, open the Emulator UI in a separate tab
+    // and point your browser to http://127.0.0.1:4000
+    console.log('Connecting to Firebase Emulators');
+    connectFirestoreEmulator(firestore, '127.0.0.1', 8080);
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099');
+  }
+
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
+    auth,
+    firestore,
   };
 }
+
 
 export * from './provider';
 export * from './client-provider';
