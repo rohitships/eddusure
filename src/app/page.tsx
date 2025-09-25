@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { generateTrustScore, type GenerateTrustScoreInput } from '@/ai/flows/generate-trust-score';
 import type { AnalysisResult, Activity, GoldenTemplate } from '@/lib/types';
@@ -9,18 +9,38 @@ import Header from '@/components/trustcheck/Header';
 import UploadOrScan from '@/components/trustcheck/UploadOrScan';
 import ResultsDisplay from '@/components/trustcheck/ResultsDisplay';
 import ActivityTracker from '@/components/trustcheck/ActivityTracker';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection } from 'firebase/firestore';
 
 export default function TrustCheckPage() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activities, setActivities] = useState<Activity[]>([]);
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const verificationsCollection = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, `users/${user.uid}/verifications`);
+  }, [firestore, user]);
+
 
   const handleAnalysis = async (data: { file: File; template: GoldenTemplate }) => {
     setIsLoading(true);
     setError(null);
     setAnalysisResult(null);
+
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'You must be logged in to perform an analysis.',
+        variant: 'destructive',
+      });
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const certificateDataUri = await new Promise<string>((resolve, reject) => {
@@ -49,17 +69,23 @@ export default function TrustCheckPage() {
         ...result,
         fileName: data.file.name,
         universityName: data.template.universityName,
+      };
+      setAnalysisResult(resultWithMetadata);
+
+      if (verificationsCollection) {
+        const newActivity: Omit<Activity, 'id' | 'timestamp'> = {
+          fileName: data.file.name,
+          trustScore: result.TrustScore,
+          status: result.TrustScore < 0.7 ? 'fraud' : 'success',
+          analysisResult: result.analysisResult,
+          universityName: data.template.universityName,
+        };
+        await addDocumentNonBlocking(verificationsCollection, {
+          ...newActivity,
+           createdAt: new Date().toISOString(),
+        });
       }
 
-      setAnalysisResult(resultWithMetadata);
-      const newActivity: Activity = {
-        id: crypto.randomUUID(),
-        fileName: data.file.name,
-        trustScore: result.TrustScore,
-        status: result.TrustScore < 0.7 ? 'fraud' : 'success',
-        timestamp: new Date(),
-      };
-      setActivities((prev) => [newActivity, ...prev]);
     } catch (e) {
       console.error(e);
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
@@ -69,14 +95,17 @@ export default function TrustCheckPage() {
         description: errorMessage,
         variant: 'destructive',
       });
-      const newActivity: Activity = {
-        id: crypto.randomUUID(),
-        fileName: data.file.name,
-        trustScore: 0,
-        status: 'failure',
-        timestamp: new Date(),
-      };
-      setActivities((prev) => [newActivity, ...prev]);
+
+      if (verificationsCollection) {
+        const failedActivity = {
+          fileName: data.file.name,
+          trustScore: 0,
+          status: 'failure' as const,
+          createdAt: new Date().toISOString(),
+          universityName: data.template.universityName,
+        };
+        await addDocumentNonBlocking(verificationsCollection, failedActivity);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -88,15 +117,6 @@ export default function TrustCheckPage() {
       setAnalysisResult(result);
       setError(null);
       setIsLoading(false);
-
-      const newActivity: Activity = {
-        id: crypto.randomUUID(),
-        fileName: result.fileName || 'Scanned Certificate',
-        trustScore: result.TrustScore,
-        status: result.TrustScore < 0.7 ? 'fraud' : 'success',
-        timestamp: new Date(),
-      };
-      setActivities((prev) => [newActivity, ...prev]);
 
        toast({
         title: 'Scan Successful',
@@ -132,7 +152,7 @@ export default function TrustCheckPage() {
             />
           </div>
         </div>
-        <ActivityTracker activities={activities} />
+        <ActivityTracker />
       </main>
     </div>
   );

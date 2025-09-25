@@ -1,4 +1,5 @@
 import { ShieldCheck } from 'lucide-react';
+import Auth from './Auth';
 
 export default function Header() {
   return (
@@ -6,6 +7,9 @@ export default function Header() {
       <div className="flex items-center gap-2">
         <ShieldCheck className="h-6 w-6 text-primary" />
         <h1 className="text-xl font-semibold text-foreground">TrustCheck</h1>
+      </div>
+      <div className="ml-auto">
+        <Auth />
       </div>
     </header>
   );

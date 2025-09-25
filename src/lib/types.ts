@@ -1,16 +1,19 @@
 import type { GenerateTrustScoreOutput } from '@/ai/flows/generate-trust-score';
 
+export type WithId<T> = T & { id: string };
+
 export type AnalysisResult = GenerateTrustScoreOutput & {
     fileName?: string;
     universityName?: string;
 };
 
 export type Activity = {
-  id: string;
   fileName: string;
   trustScore: number;
   status: 'success' | 'failure' | 'fraud';
-  timestamp: Date;
+  createdAt: string;
+  universityName: string;
+  analysisResult: GenerateTrustScoreOutput['analysisResult'];
 };
 
 export type GoldenTemplate = {
