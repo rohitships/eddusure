@@ -11,7 +11,7 @@ import ResultsDisplay from '@/components/trustcheck/ResultsDisplay';
 import ActivityTracker from '@/components/trustcheck/ActivityTracker';
 import AnalyticsDashboard from '@/components/trustcheck/AnalyticsDashboard';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDoc } from 'firebase/firestore';
 import { collection } from 'firebase/firestore';
 import { Sidebar, SidebarContent, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from '@/components/ui/sidebar';
 import Auth from '@/components/trustcheck/Auth';
@@ -78,7 +78,7 @@ export default function TrustCheckPage() {
       setAnalysisResult(resultWithMetadata);
 
       if (verificationsCollection) {
-        const newActivity: Omit<Activity, 'id' | 'createdAt'> = {
+        const newActivity: Omit<Activity, 'id'> = {
           fileName: data.file.name,
           trustScore: result.TrustScore,
           status: result.TrustScore < 0.7 ? 'fraud' : 'success',
@@ -86,11 +86,9 @@ export default function TrustCheckPage() {
           universityName: data.template.universityName,
           studentName: result.studentName,
           certificateId: result.certificateId,
+          createdAt: new Date().toISOString(),
         };
-        await addDocumentNonBlocking(verificationsCollection, {
-          ...newActivity,
-           createdAt: new Date().toISOString(),
-        });
+        await addDoc(verificationsCollection, newActivity);
       }
 
     } catch (e) {
@@ -110,8 +108,11 @@ export default function TrustCheckPage() {
           status: 'failure' as const,
           createdAt: new Date().toISOString(),
           universityName: data.template.universityName,
+          studentName: 'N/A',
+          certificateId: 'N/A',
+          analysisResult: {},
         };
-        await addDocumentNonBlocking(verificationsCollection, failedActivity);
+        await addDoc(verificationsCollection, failedActivity);
       }
     } finally {
       setIsLoading(false);

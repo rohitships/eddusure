@@ -8,14 +8,15 @@ export type AnalysisResult = GenerateTrustScoreOutput & {
 };
 
 export type Activity = {
+  id: string;
   fileName: string;
   trustScore: number;
   status: 'success' | 'failure' | 'fraud';
   createdAt: string;
   universityName: string;
   analysisResult: GenerateTrustScoreOutput['analysisResult'];
-  studentName?: string;
-  certificateId?: string;
+  studentName: string;
+  certificateId: string;
 };
 
 export type GoldenTemplate = {
