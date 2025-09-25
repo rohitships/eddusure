@@ -1,6 +1,9 @@
 import type { GenerateTrustScoreOutput } from '@/ai/flows/generate-trust-score';
 
-export type AnalysisResult = GenerateTrustScoreOutput;
+export type AnalysisResult = GenerateTrustScoreOutput & {
+    fileName?: string;
+    universityName?: string;
+};
 
 export type Activity = {
   id: string;

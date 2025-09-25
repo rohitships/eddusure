@@ -6,7 +6,7 @@ import { generateTrustScore, type GenerateTrustScoreInput } from '@/ai/flows/gen
 import type { AnalysisResult, Activity, GoldenTemplate } from '@/lib/types';
 
 import Header from '@/components/trustcheck/Header';
-import UploadForm from '@/components/trustcheck/UploadForm';
+import UploadOrScan from '@/components/trustcheck/UploadOrScan';
 import ResultsDisplay from '@/components/trustcheck/ResultsDisplay';
 import ActivityTracker from '@/components/trustcheck/ActivityTracker';
 
@@ -44,8 +44,14 @@ export default function TrustCheckPage() {
       if (result.TrustScore === undefined || result.TrustScore === null) {
         throw new Error('AI analysis failed to return a valid result. Please try a different file.');
       }
+      
+      const resultWithMetadata: AnalysisResult = {
+        ...result,
+        fileName: data.file.name,
+        universityName: data.template.universityName,
+      }
 
-      setAnalysisResult(result);
+      setAnalysisResult(resultWithMetadata);
       const newActivity: Activity = {
         id: crypto.randomUUID(),
         fileName: data.file.name,
@@ -76,13 +82,47 @@ export default function TrustCheckPage() {
     }
   };
 
+  const handleScannedData = (scannedData: string) => {
+    try {
+      const result: AnalysisResult = JSON.parse(scannedData);
+      setAnalysisResult(result);
+      setError(null);
+      setIsLoading(false);
+
+      const newActivity: Activity = {
+        id: crypto.randomUUID(),
+        fileName: result.fileName || 'Scanned Certificate',
+        trustScore: result.TrustScore,
+        status: result.TrustScore < 0.7 ? 'fraud' : 'success',
+        timestamp: new Date(),
+      };
+      setActivities((prev) => [newActivity, ...prev]);
+
+       toast({
+        title: 'Scan Successful',
+        description: `Successfully loaded verification data for ${result.fileName}.`,
+      });
+
+    } catch (e) {
+       console.error("Failed to parse scanned QR code data", e);
+       const errorMessage = "The scanned QR code contains invalid data.";
+       setError(errorMessage);
+       setAnalysisResult(null);
+       toast({
+        title: 'Scan Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  }
+
   return (
     <div className="flex min-h-screen w-full flex-col">
       <Header />
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <div className="lg:col-span-3">
-            <UploadForm onAnalyze={handleAnalysis} isLoading={isLoading} />
+            <UploadOrScan onAnalyze={handleAnalysis} isLoading={isLoading} onScan={handleScannedData} />
           </div>
           <div className="lg:col-span-4">
             <ResultsDisplay

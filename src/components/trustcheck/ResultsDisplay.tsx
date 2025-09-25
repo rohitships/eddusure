@@ -1,10 +1,16 @@
-import { AlertTriangle, CheckCircle2, FileText, PenSquare, Scaling, Type } from 'lucide-react';
+'use client';
+
+import { AlertTriangle, CheckCircle2, FileText, PenSquare, Scaling, Type, Download, QrCode } from 'lucide-react';
 import type { AnalysisResult } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import ScoreCircle from './ScoreCircle';
+import QRCode from 'qrcode.react';
+import { useRef } from 'react';
 
 type ResultsDisplayProps = {
   isLoading: boolean;
@@ -23,13 +29,31 @@ const DetailItem = ({ icon: Icon, title, score }: { icon: React.ElementType, tit
 );
 
 export default function ResultsDisplay({ isLoading, result, error }: ResultsDisplayProps) {
+  const qrCodeRef = useRef<HTMLDivElement>(null);
+
+  const downloadQRCode = () => {
+    if (qrCodeRef.current) {
+      const canvas = qrCodeRef.current.querySelector('canvas');
+      if (canvas) {
+        const pngUrl = canvas.toDataURL('image/png').replace('image/png', 'image/octet-stream');
+        let downloadLink = document.createElement('a');
+        downloadLink.href = pngUrl;
+        downloadLink.download = `${result?.fileName}-trustcheck-qr.png`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Analysis in Progress</CardTitle>
+          <CardDescription>Cross-referencing document against trusted sources...</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col items-center gap-6">
+        <CardContent className="flex flex-col items-center gap-6 pt-6">
           <Skeleton className="h-40 w-40 rounded-full" />
           <div className="w-full space-y-4">
             <Skeleton className="h-6 w-3/4" />
@@ -63,16 +87,48 @@ export default function ResultsDisplay({ isLoading, result, error }: ResultsDisp
   }
 
   const scoreValue = Math.round(result.TrustScore * 100);
+  const qrCodeValue = JSON.stringify(result);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Analysis Complete</CardTitle>
+        <div className="flex justify-between items-start">
+            <div>
+                <CardTitle>Analysis Complete</CardTitle>
+                <CardDescription>
+                    {result.fileName} from {result.universityName}
+                </CardDescription>
+            </div>
+             <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                        <QrCode className="h-5 w-5" />
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Verification QR Code</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col items-center gap-4 py-4">
+                       <div ref={qrCodeRef}>
+                         <QRCode value={qrCodeValue} size={256} />
+                       </div>
+                        <p className="text-center text-sm text-muted-foreground">
+                            Scan this code with the TrustCheck app to instantly verify this certificate's authenticity.
+                        </p>
+                        <Button onClick={downloadQRCode}>
+                            <Download className="mr-2 h-4 w-4" />
+                            Download QR Code
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </div>
       </CardHeader>
       <CardContent className="grid gap-6 md:grid-cols-2">
         <div className="flex flex-col items-center justify-center space-y-4">
           <ScoreCircle score={scoreValue} />
-          <p className="text-lg font-medium">{result.summary}</p>
+          <p className="text-center text-lg font-medium">{result.summary}</p>
         </div>
         <div className="space-y-4">
           {result.flags && result.flags.length > 0 && (
