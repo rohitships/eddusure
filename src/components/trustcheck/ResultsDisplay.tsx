@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import ScoreCircle from './ScoreCircle';
 import QRCode from 'qrcode.react';
 import { useRef } from 'react';
+import ExtractedData from './ExtractedData';
 
 type ResultsDisplayProps = {
   isLoading: boolean;
@@ -125,41 +126,45 @@ export default function ResultsDisplay({ isLoading, result, error }: ResultsDisp
             </Dialog>
         </div>
       </CardHeader>
-      <CardContent className="grid gap-6 md:grid-cols-2">
-        <div className="flex flex-col items-center justify-center space-y-4">
-          <ScoreCircle score={scoreValue} />
-          <p className="text-center text-lg font-medium">{result.summary}</p>
-        </div>
-        <div className="space-y-4">
-          {result.flags && result.flags.length > 0 && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Flags Raised</AlertTitle>
-              <AlertDescription>
-                <ul className="list-disc pl-5">
-                  {result.flags.map((flag, i) => (
-                    <li key={i}>{flag}</li>
-                  ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          )}
-          {result.flags.length === 0 && (
-             <Alert>
-              <CheckCircle2 className="h-4 w-4" />
-              <AlertTitle>No Flags Raised</AlertTitle>
-              <AlertDescription>The analysis did not find any significant issues.</AlertDescription>
-            </Alert>
-          )}
+      <CardContent className="grid gap-8">
+        <div className="grid gap-6 md:grid-cols-2">
+            <div className="flex flex-col items-center justify-center space-y-4">
+                <ScoreCircle score={scoreValue} />
+                <p className="text-center text-lg font-medium">{result.summary}</p>
+            </div>
+            <div className="space-y-4">
+            {result.flags && result.flags.length > 0 && (
+                <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Flags Raised</AlertTitle>
+                <AlertDescription>
+                    <ul className="list-disc pl-5">
+                    {result.flags.map((flag, i) => (
+                        <li key={i}>{flag}</li>
+                    ))}
+                    </ul>
+                </AlertDescription>
+                </Alert>
+            )}
+            {result.flags.length === 0 && (
+                <Alert>
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertTitle>No Flags Raised</AlertTitle>
+                <AlertDescription>The analysis did not find any significant issues.</AlertDescription>
+                </Alert>
+            )}
 
-          <Separator />
-          <div className="space-y-3">
-             <h4 className="font-medium">Forensic Breakdown</h4>
-            <DetailItem icon={Scaling} title="Structural Score" score={result.structuralScore} />
-            <DetailItem icon={PenSquare} title="Signature Score" score={result.signatureScore} />
-            <DetailItem icon={Type} title="Typographical Score" score={result.typographicalScore} />
-          </div>
+            <Separator />
+            <div className="space-y-3">
+                <h4 className="font-medium">Forensic Breakdown</h4>
+                <DetailItem icon={Scaling} title="Structural Score" score={result.structuralScore} />
+                <DetailItem icon={PenSquare} title="Signature Score" score={result.signatureScore} />
+                <DetailItem icon={Type} title="Typographical Score" score={result.typographicalScore} />
+            </div>
+            </div>
         </div>
+        <Separator />
+        <ExtractedData result={result} />
       </CardContent>
     </Card>
   );

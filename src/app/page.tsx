@@ -77,12 +77,14 @@ export default function TrustCheckPage() {
       setAnalysisResult(resultWithMetadata);
 
       if (verificationsCollection) {
-        const newActivity: Omit<Activity, 'id' | 'timestamp'> = {
+        const newActivity: Omit<Activity, 'id' | 'createdAt'> = {
           fileName: data.file.name,
           trustScore: result.TrustScore,
           status: result.TrustScore < 0.7 ? 'fraud' : 'success',
           analysisResult: result.analysisResult,
           universityName: data.template.universityName,
+          studentName: result.studentName,
+          certificateId: result.certificateId,
         };
         await addDocumentNonBlocking(verificationsCollection, {
           ...newActivity,

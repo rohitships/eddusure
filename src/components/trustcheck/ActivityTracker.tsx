@@ -1,7 +1,7 @@
 'use client';
 
 import { format } from 'date-fns';
-import { ShieldAlert, ShieldCheck, ShieldX, Loader2 } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, ShieldX, Loader2, User, ChevronsRight } from 'lucide-react';
 import type { Activity, WithId } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
@@ -47,7 +47,7 @@ export default function ActivityTracker() {
     if (!user) {
       return (
         <TableRow>
-          <TableCell colSpan={4} className="h-24 text-center">
+          <TableCell colSpan={5} className="h-24 text-center">
             Please log in to see your activity.
           </TableCell>
         </TableRow>
@@ -57,7 +57,7 @@ export default function ActivityTracker() {
     if (isLoading) {
       return (
         <TableRow>
-          <TableCell colSpan={4} className="h-24 text-center">
+          <TableCell colSpan={5} className="h-24 text-center">
             <Loader2 className="mx-auto h-6 w-6 animate-spin" />
           </TableCell>
         </TableRow>
@@ -67,7 +67,7 @@ export default function ActivityTracker() {
     if (!activities || activities.length === 0) {
        return (
         <TableRow>
-          <TableCell colSpan={4} className="h-24 text-center">
+          <TableCell colSpan={5} className="h-24 text-center">
             No activity yet.
           </TableCell>
         </TableRow>
@@ -80,6 +80,16 @@ export default function ActivityTracker() {
         return (
           <TableRow key={activity.id}>
             <TableCell className="font-medium">{activity.fileName}</TableCell>
+            <TableCell>
+                <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{activity.studentName || 'N/A'}</span>
+                </div>
+                 <div className="flex items-center gap-2 text-muted-foreground">
+                    <ChevronsRight className="h-4 w-4" />
+                    <span className="text-xs">{activity.certificateId || 'N/A'}</span>
+                </div>
+            </TableCell>
             <TableCell>
               <Badge variant="outline" className={`gap-1.5 ${config.color}`}>
                 <Icon className="h-3.5 w-3.5" />
@@ -109,6 +119,7 @@ export default function ActivityTracker() {
           <TableHeader>
             <TableRow>
               <TableHead>File Name</TableHead>
+              <TableHead>Student / Certificate ID</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">TrustScore</TableHead>
               <TableHead className="text-right">Timestamp</TableHead>
