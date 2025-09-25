@@ -1,0 +1,198 @@
+/**
+ * @fileOverview Security rules for the TrustCheck application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for user-related data,
+ * while allowing public read access to golden templates. Administrative
+ * privileges are granted based on the existence of a document in the
+ * `/roles_admin/{userId}` collection.
+ *
+ * Data Structure:
+ * - /users/{userId}: User profiles, accessible only to the user themselves or admins.
+ * - /golden_templates/{goldenTemplateId}: Publicly readable golden templates,
+ *   modifiable only by admins.
+ * - /users/{userId}/verifications/{verificationId}: Verification requests, owned
+ *   by a specific user.
+ * - /users/{userId}/activity_logs/{activityLogId}: Activity logs, owned by a
+ *   specific user.
+ * - /roles_admin/{userId}: Indicates admin role; existence of document grants
+ *   admin privileges.
+ *
+ * Key Security Decisions:
+ * - Users can only access their own profile data and their own verifications and
+ *   activity logs.
+ * - Listing of documents is allowed for owner in subcollections
+ * - Golden templates are publicly readable but only modifiable by admins.
+ * - The existence of a document in /roles_admin/{userId} grants admin privileges.
+ *
+ * Denormalization for Authorization:
+ * - Ownership is enforced by matching the `request.auth.uid` against the
+ *   `userId` path parameter. This avoids costly `get()` calls.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Checks if the request is made by a signed-in user.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner of the document.
+     * @param {string} userId - The user ID to compare against the authenticated user's ID.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner of the existing document.
+     * @param {string} userId - The user ID to compare against the authenticated user's ID.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user is an admin.
+     */
+    function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /********************* User Profile Rules *********************/
+
+    /**
+     * @description Manages user profiles. Only the user or an admin can read/write.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'user123' creates their profile.
+     *    - Auth: {uid: 'user123'}
+     *    - Request: {id: 'user123', email: 'user123@example.com', displayName: 'User 123', role: 'user'}
+     * @allow (get, update, delete) User with ID 'user123' reads/updates/deletes their profile.
+     *    - Auth: {uid: 'user123'}
+     * @allow (get) Admin reads user profile.
+     *    - Auth: {uid: 'admin456'} with document in /roles_admin/admin456
+     * @deny (create) User attempts to create a profile with mismatched ID.
+     *    - Auth: {uid: 'user123'}
+     *    - Request: {id: 'user456', ...}
+     * @deny (update, delete) User attempts to update/delete another user's profile.
+     *    - Auth: {uid: 'user123'}
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     */
+    match /users/{userId} {
+      // Read permissions: Only the owner or an admin can get the document
+      allow get: if isOwner(userId) || isAdmin();
+      // List permission is denied.
+      allow list: if false;
+
+      // Write permissions:
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
+    }
+
+    /********************* Golden Template Rules *********************/
+
+    /**
+     * @description Manages golden templates. Globally accessible, managed by admin roles.
+     * @path /golden_templates/{goldenTemplateId}
+     * @allow (get, list) Any user can read golden templates.
+     * @allow (create, update, delete) Admin creates, updates, or deletes golden templates.
+     *    - Auth: {uid: 'admin456'} with document in /roles_admin/admin456
+     * @deny (create, update, delete) Non-admin user attempts to modify golden templates.
+     *    - Auth: {uid: 'user123'}
+     * @principle Allows public read access with owner-only (admin) writes.
+     */
+    match /golden_templates/{goldenTemplateId} {
+      // Read permissions: Publicly readable
+      allow get, list: if true;
+
+      // Write permissions: Only admins can create, update, or delete
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    /********************* Verification Rules *********************/
+
+    /**
+     * @description Manages certificate verification requests. Owned by a specific user.
+     * @path /users/{userId}/verifications/{verificationId}
+     * @allow (create) User with ID 'user123' creates a verification request.
+     *    - Auth: {uid: 'user123'}
+     *    - Request: {userId: 'user123', ...}
+     * @allow (get, update, delete) User with ID 'user123' reads/updates/deletes their verification request.
+     *    - Auth: {uid: 'user123'}
+     * @deny (create) User attempts to create a verification request with mismatched user ID.
+     *    - Auth: {uid: 'user123'}
+     *    - Request: {userId: 'user456', ...}
+     * @deny (update, delete) User attempts to update/delete another user's verification request.
+     *    - Auth: {uid: 'user123'}
+     * @principle Enforces document ownership for writes and restricts access to a user's own data.
+     */
+    match /users/{userId}/verifications/{verificationId} {
+      // Read permissions: Only the owner can get the document
+      allow get: if isOwner(userId);
+      // List permissions: Only the owner can list the documents in the subcollection.
+      allow list: if isOwner(userId);
+
+      // Write permissions:
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /********************* Activity Log Rules *********************/
+
+    /**
+     * @description Manages activity logs. Associated with a user and a verification request.
+     * @path /users/{userId}/activity_logs/{activityLogId}
+     * @allow (create) User with ID 'user123' creates an activity log.
+     *    - Auth: {uid: 'user123'}
+     *    - Request: {userId: 'user123', ...}
+     * @allow (get, update, delete) User with ID 'user123' reads/updates/deletes their activity log.
+     *    - Auth: {uid: 'user123'}
+     * @deny (create) User attempts to create an activity log with mismatched user ID.
+     *    - Auth: {uid: 'user123'}
+     *    - Request: {userId: 'user456', ...}
+     * @deny (update, delete) User attempts to update/delete another user's activity log.
+     *    - Auth: {uid: 'user123'}
+     * @principle Enforces document ownership for writes and restricts access to a user's own data.
+     */
+    match /users/{userId}/activity_logs/{activityLogId} {
+      // Read permissions: Only the owner can get the document
+      allow get: if isOwner(userId);
+      // List permissions: Only the owner can list the documents in the subcollection.
+      allow list: if isOwner(userId);
+
+      // Write permissions:
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /********************* Admin Role Rules *********************/
+
+    /**
+     * @description Indicates admin role.  Existence of document grants admin privileges.
+     * @path /roles_admin/{userId}
+     * @allow (create) Admin can create their role document.
+     *    - Auth: {uid: 'admin123'}
+     * @allow (get) Any user can check for the existence of an admin role document.
+     * @deny (update, delete) Only admin can modify their role
+     * @principle Grants admin privileges based on document existence.
+     */
+    match /roles_admin/{userId} {
+      allow get: if true; // Anyone can check if a user is an admin
+
+      allow list: if false; // no one can list
+
+      allow create: if isOwner(userId);
+      allow update: if false;
+      allow delete: if isOwner(userId);
+    }
+  }
+}

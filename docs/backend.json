@@ -1,0 +1,270 @@
+{
+  "entities": {
+    "Verification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Verification",
+      "type": "object",
+      "description": "Represents a single certificate verification request and its analysis results.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the verification request."
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID of the user who submitted the request. Reference to User."
+        },
+        "fileName": {
+          "type": "string",
+          "description": "Original name of the uploaded file."
+        },
+        "storagePath": {
+          "type": "string",
+          "description": "Path to the file in Cloud Storage."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the verification request was created.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the verification process (e.g., 'processing', 'complete', 'error')."
+        },
+        "analysisResult": {
+          "type": "string",
+          "description": "The full JSON object returned by the Gemini API as a string."
+        },
+        "templateId": {
+          "type": "string",
+          "description": "Reference to the GoldenTemplate used for this verification. (Relationship: GoldenTemplate 1:N Verification)"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "fileName",
+        "storagePath",
+        "createdAt",
+        "status",
+        "analysisResult",
+        "templateId"
+      ]
+    },
+    "GoldenTemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GoldenTemplate",
+      "type": "object",
+      "description": "Represents a golden template for a specific university degree and year.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the golden template (e.g., 'ranchi_university_btech_cse_2024')."
+        },
+        "universityName": {
+          "type": "string",
+          "description": "Name of the university."
+        },
+        "degreeName": {
+          "type": "string",
+          "description": "Name of the degree (e.g., 'B.Tech Computer Science')."
+        },
+        "year": {
+          "type": "number",
+          "description": "Year of the degree."
+        },
+        "referenceSignatureUrl": {
+          "type": "string",
+          "description": "Cloud Storage URL to the golden signature image."
+        },
+        "referenceSealUrl": {
+          "type": "string",
+          "description": "Cloud Storage URL to the golden seal image."
+        },
+        "templateDescription": {
+          "type": "string",
+          "description": "A detailed text description of the expected layout for the Gemini prompt."
+        }
+      },
+      "required": [
+        "id",
+        "universityName",
+        "degreeName",
+        "year",
+        "referenceSignatureUrl",
+        "referenceSealUrl",
+        "templateDescription"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the TrustCheck application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the user."
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user (e.g., 'user', 'admin')."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "displayName",
+        "role"
+      ]
+    },
+    "ActivityLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActivityLog",
+      "type": "object",
+      "description": "Represents an activity log entry for tracking uploads and fraudulent submissions.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the activity log entry."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who performed the activity. (Relationship: User 1:N ActivityLog)"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of the activity.",
+          "format": "date-time"
+        },
+        "activityType": {
+          "type": "string",
+          "description": "Type of activity (e.g., 'upload', 'fraudulent_submission')."
+        },
+        "verificationId": {
+          "type": "string",
+          "description": "Reference to the Verification associated with the activity. (Relationship: Verification 1:N ActivityLog)"
+        },
+        "details": {
+          "type": "string",
+          "description": "Additional details about the activity (e.g., file name, IP address)."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "timestamp",
+        "activityType",
+        "verificationId"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles.  Path-based ownership.  Only the user or an admin can read/write.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/golden_templates/{goldenTemplateId}",
+        "definition": {
+          "entityName": "GoldenTemplate",
+          "schema": {
+            "$ref": "#/backend/entities/GoldenTemplate"
+          },
+          "description": "Stores the golden templates for certificate verification. Globally accessible, managed by admin roles.",
+          "params": [
+            {
+              "name": "goldenTemplateId",
+              "description": "The unique identifier of the golden template."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/verifications/{verificationId}",
+        "definition": {
+          "entityName": "Verification",
+          "schema": {
+            "$ref": "#/backend/entities/Verification"
+          },
+          "description": "Stores certificate verification requests. Owned by a specific user.  Path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who created the verification request."
+            },
+            {
+              "name": "verificationId",
+              "description": "The unique identifier of the verification request."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/activity_logs/{activityLogId}",
+        "definition": {
+          "entityName": "ActivityLog",
+          "schema": {
+            "$ref": "#/backend/entities/ActivityLog"
+          },
+          "description": "Stores activity logs for tracking uploads and fraudulent submissions. Associated with a user and a verification request. Path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who performed the activity."
+            },
+            {
+              "name": "activityLogId",
+              "description": "The unique identifier of the activity log entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "AdminRole",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Indicates admin role.  Existence of document grants admin privileges.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the admin user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability for the TrustCheck application. It leverages denormalization and structural segregation to simplify security rules and optimize query performance.\n\n*   **Users Collection:** Stores user profiles. Security rules ensure only the user themselves or admins can read/write their data.  The `users/{userId}` path enforces path-based ownership.\n*   **Golden Templates Collection:** Stores the golden templates for certificate verification. The templates are globally accessible, and admin roles are required to manage (create, update, delete) them.\n*   **Verifications Collection:** Stores certificate verification requests. Each document is owned by a specific user (identified by `userId`). This collection is critical for the AI-powered document analysis.  The structure `/users/{userId}/verifications/{verificationId}` facilitates straightforward ownership-based security rules.\n*   **Activity Logs Collection:** Stores activity logs for tracking uploads and fraudulent submissions. Each log entry is associated with a user and a verification request. The structure `/users/{userId}/activity_logs/{activityLogId}` enables efficient retrieval of logs for a specific user.\n\n**Authorization Independence & Denormalization:** The primary strategy for achieving authorization independence is the use of path-based ownership and global admin roles based on collection existence (`/roles_admin/{userId}`). By storing ownership directly in the document path (e.g., `/users/{userId}/verifications/{verificationId}`), we eliminate the need for complex `get()` calls to parent documents to determine access. For example, to check if a user can read a verification document, the rule simply checks if `request.auth.uid == userId`.\n\n**QAPs (Rules are not Filters):**\n\n*   **Secure List Operations:** The segregation of data into user-owned subcollections and globally accessible collections, combined with the enforcement of strict data validation rules, ensures that `list` operations are secure and efficient. For example, a user can only list verification documents within their own `/users/{userId}/verifications` path.\n\n**Admin Roles**: Use collection existence in `/roles_admin/{userId}`."
+  }
+}
