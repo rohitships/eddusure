@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns';
 import { ShieldAlert, ShieldCheck, ShieldX, Loader2, User, ChevronsRight } from 'lucide-react';
-import type { Activity, WithId } from '@/lib/types';
+import type { Activity } from '@/lib/types';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 
@@ -68,7 +68,7 @@ export default function ActivityTracker() {
        return (
         <TableRow>
           <TableCell colSpan={5} className="h-24 text-center">
-            No activity yet.
+            No activity yet. Upload a document to get started.
           </TableCell>
         </TableRow>
       );
@@ -111,8 +111,8 @@ export default function ActivityTracker() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Activity Tracking</CardTitle>
-        <CardDescription>Recent validation activity for your account.</CardDescription>
+        <CardTitle>Recent Activity</CardTitle>
+        <CardDescription>A log of your most recent certificate verifications.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>

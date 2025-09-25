@@ -9,6 +9,7 @@ import Header from '@/components/trustcheck/Header';
 import UploadOrScan from '@/components/trustcheck/UploadOrScan';
 import ResultsDisplay from '@/components/trustcheck/ResultsDisplay';
 import ActivityTracker from '@/components/trustcheck/ActivityTracker';
+import AnalyticsDashboard from '@/components/trustcheck/AnalyticsDashboard';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { collection } from 'firebase/firestore';
@@ -163,6 +164,7 @@ export default function TrustCheckPage() {
         <Header />
         <SidebarInset>
           <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+            <AnalyticsDashboard />
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
               <div className="lg:col-span-3">
                 <UploadOrScan onAnalyze={handleAnalysis} isLoading={isLoading} onScan={handleScannedData} />
