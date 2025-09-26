@@ -145,8 +145,8 @@ export default function TrustCheckPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
-       <Sidebar>
+    <div className="bg-muted/40">
+      <Sidebar>
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
