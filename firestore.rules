@@ -3,28 +3,17 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can read/write their own data
-    match /users/{userId} {
-      allow read, write: if request.auth.uid == userId;
-      
-      // Users can manage their own verifications and activity logs
-      match /verifications/{verificationId} {
-        allow read, write, create, delete: if request.auth.uid == userId;
-      }
-      match /activity_logs/{activityLogId} {
-        allow read, write, create, delete: if request.auth.uid == userId;
-      }
-    }
-
-    // Golden templates are readable by any authenticated user, but only writable by admins
+    // Golden templates are public and can be read by anyone.
+    // This is required for the server-side AI agent to fetch template data.
     match /golden_templates/{templateId} {
-      allow read: if request.auth != null;
-      allow write: if get(/databases/$(database)/documents/roles_admin/$(request.auth.uid)).data.role == 'admin';
+      allow read: if true;
+      allow write: if false; // Nobody can write to this collection directly, it must be seeded.
     }
 
-    // Admin roles collection
-    match /roles_admin/{userId} {
-      allow read, write: if get(/databases/$(database)/documents/roles_admin/$(request.auth.uid)).data.role == 'admin';
+    // Users can only manage their own documents.
+    // This rule is recursive and protects all subcollections.
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth.uid == userId;
     }
   }
 }
