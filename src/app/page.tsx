@@ -119,7 +119,15 @@ export default function TrustCheckPage() {
     }
   };
 
-  const handleScannedData = (scannedData: string) => {
+  const handleScannedData = (scannedData: string | undefined) => {
+    if (!scannedData) {
+       toast({
+        title: 'Scan Failed',
+        description: 'The QR code appears to be empty or invalid.',
+        variant: 'destructive',
+      });
+      return;
+    }
     try {
       const result: AnalysisResult = JSON.parse(scannedData);
       setAnalysisResult(result);

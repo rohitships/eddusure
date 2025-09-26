@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Camera, CameraOff } from 'lucide-react';
 
 type QrScannerComponentProps = {
-  onScan: (data: string) => void;
+  onScan: (data: string | undefined) => void;
   isLoading: boolean;
 };
 

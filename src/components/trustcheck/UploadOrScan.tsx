@@ -9,7 +9,7 @@ import { UploadCloud, QrCode } from 'lucide-react';
 type UploadOrScanProps = {
   onAnalyze: (data: { file: File; template: GoldenTemplate }) => void;
   isLoading: boolean;
-  onScan: (data: string) => void;
+  onScan: (data: string | undefined) => void;
 };
 
 export default function UploadOrScan({ onAnalyze, isLoading, onScan }: UploadOrScanProps) {
