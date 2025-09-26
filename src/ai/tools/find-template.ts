@@ -24,20 +24,30 @@ const GoldenTemplateSchema = z.object({
     templateDescription: z.string(),
 });
 
+const defaultTemplate: z.infer<typeof GoldenTemplateSchema> = {
+    id: 'not-found',
+    universityName: 'N/A',
+    degreeName: 'N/A',
+    year: 0,
+    referenceSignatureUrl: 'N/A',
+    referenceSealUrl: 'N/A',
+    templateDescription: 'No template found. Analyze based on general document properties.',
+};
+
 export const findGoldenTemplate = ai.defineTool(
   {
     name: 'findGoldenTemplate',
-    description: 'Finds the golden template for a given university name.',
+    description: 'Finds the golden template for a given university name. Returns a default if not found.',
     input: z.object({
       universityName: z.string().describe('The name of the university to search for. Should be an exact match.'),
     }),
-    output: GoldenTemplateSchema.nullable(),
+    output: GoldenTemplateSchema,
   },
   async (input) => {
     // Add a guard clause to prevent invalid queries
     if (!input.universityName || typeof input.universityName !== 'string') {
-      console.log('Invalid or missing universityName provided to findGoldenTemplate tool. Returning null.');
-      return null;
+      console.log('Invalid or missing universityName provided. Returning default template.');
+      return defaultTemplate;
     }
 
     console.log(`Searching for template with universityName: ${input.universityName}`);
@@ -52,8 +62,11 @@ export const findGoldenTemplate = ai.defineTool(
     try {
         const querySnapshot = await getDocs(q);
         if (querySnapshot.empty) {
-            console.log('No matching documents found.');
-            return null;
+            console.log('No matching documents found. Returning default template.');
+            return {
+                ...defaultTemplate,
+                universityName: input.universityName, // Keep the searched name for context
+            };
         }
         
         const doc = querySnapshot.docs[0];
@@ -70,14 +83,14 @@ export const findGoldenTemplate = ai.defineTool(
             return validationResult.data;
         } else {
             console.error('Firestore data validation error:', validationResult.error);
-            // Return null if data is malformed
-            return null;
+            // Return default if data is malformed
+            return defaultTemplate;
         }
 
     } catch (error) {
         console.error("Error in findGoldenTemplate tool:", error);
-        // If there's an error during the query, return null
-        return null;
+        // If there's an error during the query, return the default
+        return defaultTemplate;
     }
   }
 );
