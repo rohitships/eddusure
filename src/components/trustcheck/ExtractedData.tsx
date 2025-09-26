@@ -9,7 +9,7 @@ type ExtractedDataProps = {
   result: AnalysisResult;
 };
 
-const DataRow = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | undefined }) => (
+const DataRow = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | undefined | null }) => (
   <TableRow>
     <TableCell className="font-semibold w-1/3">
       <div className="flex items-center gap-3">

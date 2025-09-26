@@ -34,35 +34,27 @@ const GenerateTrustScoreInputSchema = z.object({
 });
 export type GenerateTrustScoreInput = z.infer<typeof GenerateTrustScoreInputSchema>;
 
-const GenerateTrustScoreOutputSchema = z.object({
-  structuralScore: z.number().describe('A float between 0.0 and 1.0.'),
-  signatureScore: z.number().describe('A float between 0.0 and 1.0.'),
-  typographicalScore: z.number().describe('A float between 0.0 and 1.0.'),
-  TrustScore: z.number().describe('A final, weighted-average confidence score.'),
-  summary: z.string().describe('A brief, one-sentence summary of your findings.'),
-  flags: z.array(z.string()).describe('An array of strings describing any detected issues.'),
-  studentName: z.string().describe("The full name of the student as it appears on the certificate."),
-  certificateId: z.string().describe("The unique identification number of the certificate."),
-  institutionName: z.string().describe("The name of the institution that issued the certificate."),
-  grades: z.string().describe("The grades or marks obtained by the student."),
-  dateOfBirth: z.string().describe("The student's date of birth as it appears on the certificate (if present)."),
-  graduationDate: z.string().describe("The date of graduation or completion."),
-  analysisResult: z.object({
-    structuralScore: z.number(),
-    signatureScore: z.number(),
-    typographicalScore: z.number(),
-    TrustScore: z.number(),
-    summary: z.string(),
-    flags: z.array(z.string()),
-    studentName: z.string(),
-    certificateId: z.string(),
-    institutionName: z.string(),
-    grades: z.string(),
-    dateOfBirth: z.string(),
-    graduationDate: z.string(),
-  }).describe('The full JSON object returned by the Gemini API.'),
+const AnalysisResultSchema = z.object({
+    structuralScore: z.number().describe('A float between 0.0 and 1.0.'),
+    signatureScore: z.number().describe('A float between 0.0 and 1.0.'),
+    typographicalScore: z.number().describe('A float between 0.0 and 1.0.'),
+    TrustScore: z.number().describe('A final, weighted-average confidence score.'),
+    summary: z.string().describe('A brief, one-sentence summary of your findings.'),
+    flags: z.array(z.string()).describe('An array of strings describing any detected issues.'),
+    studentName: z.string().describe("The full name of the student as it appears on the certificate."),
+    certificateId: z.string().describe("The unique identification number of the certificate."),
+    institutionName: z.string().describe("The name of the institution that issued the certificate."),
+    grades: z.string().describe("The grades or marks obtained by the student."),
+    dateOfBirth: z.string().describe("The student's date of birth as it appears on the certificate (if present)."),
+    graduationDate: z.string().describe("The date of graduation or completion."),
 });
+
+const GenerateTrustScoreOutputSchema = AnalysisResultSchema.extend({
+  analysisResult: AnalysisResultSchema.describe('The full JSON object returned by the Gemini API.'),
+});
+
 export type GenerateTrustScoreOutput = z.infer<typeof GenerateTrustScoreOutputSchema>;
+
 
 export async function generateTrustScore(
   input: GenerateTrustScoreInput
@@ -154,15 +146,17 @@ const generateTrustScoreFlow = ai.defineFlow(
     }
 
     try {
-      const analysisResult = output.analysisResult
+      // The entire output is the analysis result.
+      // We return it directly and also nest it under the `analysisResult` key
+      // to match the expected schema.
       return {
         ...output,
-        analysisResult,
+        analysisResult: output,
       };
     } catch (error) {
       console.error('Failed to process AI output:', error);
       // If processing fails, return a structured error response
-      return {
+      const errorResult = {
         structuralScore: 0,
         signatureScore: 0,
         typographicalScore: 0,
@@ -175,19 +169,13 @@ const generateTrustScoreFlow = ai.defineFlow(
         grades: 'N/A',
         dateOfBirth: 'N/A',
         graduationDate: 'N/A',
+      };
+      return {
+        ...errorResult,
         analysisResult: {
-          structuralScore: 0,
-          signatureScore: 0,
-          typographicalScore: 0,
-          TrustScore: 0,
-          summary: 'Raw output was not valid.',
-          flags: [],
-          studentName: 'N/A',
-          certificateId: 'N/A',
-          institutionName: 'N/A',
-          grades: 'N/A',
-          dateOfBirth: 'N/A',
-          graduationDate: 'N/A',
+            ...errorResult,
+            summary: "Raw output was not valid.",
+            flags: []
         },
       };
     }
