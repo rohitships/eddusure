@@ -3,11 +3,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import UploadForm from './UploadForm';
 import QrScannerComponent from './QrScanner';
-import type { GoldenTemplate } from '@/lib/types';
 import { UploadCloud, QrCode } from 'lucide-react';
 
 type UploadOrScanProps = {
-  onAnalyze: (data: { file: File; template: GoldenTemplate }) => void;
+  onAnalyze: (data: { file: File; }) => void;
   isLoading: boolean;
   onScan: (data: string | undefined) => void;
 };

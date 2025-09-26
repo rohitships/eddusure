@@ -5,18 +5,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, UploadCloud, File as FileIcon } from 'lucide-react';
-import type { GoldenTemplate } from '@/lib/types';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '../ui/skeleton';
 
 const formSchema = z.object({
-  templateId: z.string().min(1, 'Please select a certificate template.'),
   file: z
     .instanceof(File)
     .refine((file) => file.size > 0, 'Please upload a file.')
@@ -28,33 +22,23 @@ const formSchema = z.object({
 });
 
 type UploadFormProps = {
-  onAnalyze: (data: { file: File; template: GoldenTemplate }) => void;
+  onAnalyze: (data: { file: File }) => void;
   isLoading: boolean;
 };
 
 export default function UploadForm({ onAnalyze, isLoading }: UploadFormProps) {
   const [fileName, setFileName] = useState('');
-  const firestore = useFirestore();
-
-  const templatesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'golden_templates');
-  }, [firestore]);
-
-  const { data: goldenTemplates, isLoading: isLoadingTemplates } = useCollection<GoldenTemplate>(templatesQuery);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      templateId: '',
       file: undefined,
     },
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    const template = goldenTemplates?.find((t) => t.id === values.templateId);
-    if (template && values.file) {
-      onAnalyze({ file: values.file, template });
+    if (values.file) {
+      onAnalyze({ file: values.file });
     }
   };
 
@@ -62,40 +46,11 @@ export default function UploadForm({ onAnalyze, isLoading }: UploadFormProps) {
     <Card>
       <CardHeader>
         <CardTitle>Validate a Certificate</CardTitle>
-        <CardDescription>Select a template and upload the certificate for analysis.</CardDescription>
+        <CardDescription>Upload the certificate document for an automated forensic analysis.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="templateId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Certificate Template</FormLabel>
-                   {isLoadingTemplates ? (
-                    <Skeleton className="h-10 w-full" />
-                  ) : (
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || isLoadingTemplates}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a university and degree..." />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {goldenTemplates?.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {`${template.universityName} - ${template.degreeName} ${template.year}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <FormField
               control={form.control}
               name="file"

@@ -10,26 +10,14 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { findGoldenTemplate } from '@/ai/tools/find-template';
+
 
 const GenerateTrustScoreInputSchema = z.object({
   certificateDataUri: z
     .string()
     .describe(
       "A certificate file, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
-  universityName: z.string().describe('The name of the university.'),
-  degreeName: z.string().describe('The name of the degree.'),
-  year: z.number().describe('The year the degree was awarded.'),
-  referenceSignatureUrl: z
-    .string()
-    .describe('Cloud Storage URL to the golden signature image.'),
-  referenceSealUrl: z
-    .string()
-    .describe('Cloud Storage URL to the golden seal image.'),
-  templateDescription: z
-    .string()
-    .describe(
-      'A detailed text description of the expected layout for the Gemini prompt.'
     ),
 });
 export type GenerateTrustScoreInput = z.infer<typeof GenerateTrustScoreInputSchema>;
@@ -66,47 +54,26 @@ const prompt = ai.definePrompt({
   name: 'generateTrustScorePrompt',
   input: {schema: GenerateTrustScoreInputSchema},
   output: {schema: GenerateTrustScoreOutputSchema},
-  prompt: `You are an expert forensic document analyst AI, specialized in detecting forged academic certificates. Your task is to analyze an uploaded academic certificate against provided reference materials and return a detailed analysis in a strict JSON format.
+  tools: [findGoldenTemplate],
+  prompt: `You are an expert forensic document analyst AI, specialized in detecting forged academic certificates. Your task is to analyze an uploaded academic certificate and return a detailed analysis in a strict JSON format.
 
-Analysis Steps:
+Your process is as follows:
 
-Data Extraction:
-First, extract the following information from the certificate PDF:
-- studentName: The full name of the student.
-- certificateId: The unique identification number of the certificate.
-- institutionName: The name of the institution that issued the certificate.
-- grades: The grades, marks, or final result obtained.
-- dateOfBirth: The student's date of birth (if present).
-- graduationDate: The date of graduation or degree conferral.
+1.  **Initial Data Extraction**: First, extract the 'institutionName' from the provided certificate.
 
-Structural & Layout Validation:
-Analyze the layout of the provided certificate PDF.
-Compare its structure against the following description of the official template: "{{templateDescription}}".
-Check for the correct positioning, size, and aspect ratio of key elements like the university logo, header, footer, and text blocks.
-Assign a structuralScore from 0.0 (complete mismatch) to 1.0 (perfect match).
+2.  **Find Golden Template**: Use the extracted 'institutionName' to call the 'findGoldenTemplate' tool. This tool will return the reference signature URL, seal URL, and template description for that specific institution. If no template is found, you must stop and report an error.
 
-Signature & Seal Verification:
-Locate the signature and the official seal on the certificate PDF.
-Compare the located signature against the provided reference signature image.
-Compare the located seal against the provided reference seal image.
-Evaluate for signs of digital tampering, pixelation, or inconsistencies.
-Assign a signatureScore from 0.0 (clear forgery) to 1.0 (perfect match).
+3.  **Full Analysis**: Once you have the golden template, perform a full analysis of the certificate.
+    *   **Data Extraction**: Extract all required fields: studentName, certificateId, institutionName, grades, dateOfBirth, and graduationDate.
+    *   **Structural & Layout Validation**: Compare the certificate's structure against the 'templateDescription' from the golden template. Assign a 'structuralScore' from 0.0 to 1.0.
+    *   **Signature & Seal Verification**: Compare the signature and seal on the certificate against the 'referenceSignatureUrl' and 'referenceSealUrl' from the golden template. Assign a 'signatureScore' from 0.0 to 1.0.
+    *   **Typographical Anomaly Detection**: Analyze for font and text inconsistencies. Assign a 'typographicalScore' from 0.0 to 1.0.
 
-Typographical Anomaly Detection:
-Analyze the fonts used throughout the document.
-Check for inconsistencies in font type, size, kerning, and color, especially between different sections (e.g., student's name vs. course names).
-Flag any text that appears to be digitally inserted or altered.
-Assign a typographicalScore from 0.0 (many anomalies) to 1.0 (perfectly consistent).
-
-Final Output:
-Your final output MUST be a single JSON object. Do not include any other text or explanations outside of the JSON structure.
-
-The JSON object must contain all extracted data fields and all analysis scores. The TrustScore is a weighted-average confidence score calculated as (0.4 * structuralScore) + (0.4 * signatureScore) + (0.2 * typographicalScore).
+4.  **Final Output**: Your final output MUST be a single JSON object. Do not include any other text or explanations outside of the JSON structure.
+    *   Calculate the 'TrustScore' as a weighted average: (0.4 * structuralScore) + (0.4 * signatureScore) + (0.2 * typographicalScore).
+    *   The JSON object must contain all extracted data fields and all analysis scores.
 
 Here is the certificate to analyze: {{media url=certificateDataUri}}
-Here is the reference signature image: {{media url=referenceSignatureUrl}}
-Here is the reference seal image: {{media url=referenceSealUrl}}
-
 
 Output the JSON:
 `,

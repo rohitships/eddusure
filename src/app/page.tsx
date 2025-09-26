@@ -32,7 +32,7 @@ export default function TrustCheckPage() {
   }, [firestore, user]);
 
 
-  const handleAnalysis = async (data: { file: File; template: GoldenTemplate }) => {
+  const handleAnalysis = async (data: { file: File }) => {
     setIsLoading(true);
     setError(null);
     setAnalysisResult(null);
@@ -57,12 +57,6 @@ export default function TrustCheckPage() {
 
       const input: GenerateTrustScoreInput = {
         certificateDataUri,
-        universityName: data.template.universityName,
-        degreeName: data.template.degreeName,
-        year: data.template.year,
-        referenceSignatureUrl: data.template.referenceSignatureUrl,
-        referenceSealUrl: data.template.referenceSealUrl,
-        templateDescription: data.template.templateDescription,
       };
 
       const result = await generateTrustScore(input);
@@ -73,7 +67,7 @@ export default function TrustCheckPage() {
       const resultWithMetadata: AnalysisResult = {
         ...result,
         fileName: data.file.name,
-        universityName: data.template.universityName,
+        universityName: result.institutionName, // Use the name extracted by the AI
       };
       setAnalysisResult(resultWithMetadata);
 
@@ -83,7 +77,7 @@ export default function TrustCheckPage() {
           trustScore: result.TrustScore,
           status: result.TrustScore < 0.7 ? 'fraud' : 'success',
           analysisResult: result.analysisResult,
-          universityName: data.template.universityName,
+          universityName: result.institutionName,
           studentName: result.studentName,
           certificateId: result.certificateId,
           createdAt: new Date().toISOString(),
@@ -107,7 +101,7 @@ export default function TrustCheckPage() {
           trustScore: 0,
           status: 'failure' as const,
           createdAt: new Date().toISOString(),
-          universityName: data.template.universityName,
+          universityName: 'N/A',
           studentName: 'N/A',
           certificateId: 'N/A',
           analysisResult: {},
