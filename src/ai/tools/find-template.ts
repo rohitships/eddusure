@@ -34,6 +34,12 @@ export const findGoldenTemplate = ai.defineTool(
     output: GoldenTemplateSchema.nullable(),
   },
   async (input) => {
+    // Add a guard clause to prevent invalid queries
+    if (!input.universityName || typeof input.universityName !== 'string') {
+      console.log('Invalid or missing universityName provided to findGoldenTemplate tool. Returning null.');
+      return null;
+    }
+
     console.log(`Searching for template with universityName: ${input.universityName}`);
     
     const templatesRef = collection(db, 'golden_templates');
