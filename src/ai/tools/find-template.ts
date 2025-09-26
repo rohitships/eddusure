@@ -4,15 +4,12 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getFirestore, collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { firebaseConfig } from '@/firebase/config';
+import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
+import { initializeFirebaseAdmin } from '@/firebase/admin';
 
 // Initialize Firebase Admin
-if (getApps().length === 0) {
-  initializeApp(firebaseConfig);
-}
-const db = getFirestore();
+initializeFirebaseAdmin();
+const db = getAdminFirestore();
 
 const GoldenTemplateSchema = z.object({
     id: z.string(),
@@ -38,10 +35,10 @@ export const findGoldenTemplate = ai.defineTool(
   {
     name: 'findGoldenTemplate',
     description: 'Finds the golden template for a given university name. Returns a default if not found.',
-    input: z.object({
+    inputSchema: z.object({
       universityName: z.string().describe('The name of the university to search for. Should be an exact match.'),
     }),
-    output: GoldenTemplateSchema,
+    outputSchema: GoldenTemplateSchema,
   },
   async (input) => {
     // Add a guard clause to prevent invalid queries
@@ -52,15 +49,11 @@ export const findGoldenTemplate = ai.defineTool(
 
     console.log(`Searching for template with universityName: ${input.universityName}`);
     
-    const templatesRef = collection(db, 'golden_templates');
-    const q = query(
-        templatesRef, 
-        where('universityName', '==', input.universityName),
-        limit(1)
-    );
+    const templatesRef = db.collection('golden_templates');
+    const q = templatesRef.where('universityName', '==', input.universityName).limit(1);
 
     try {
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await q.get();
         if (querySnapshot.empty) {
             console.log('No matching documents found. Returning default template.');
             return {
