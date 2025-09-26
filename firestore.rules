@@ -1,152 +1,30 @@
-/**
- * @file Firestore Security Rules for TrustCheck Application
- *
- * @core_philosophy: This ruleset enforces a strict user-ownership model for user-specific data,
- * allowing users to only access their own data. Admin privileges are granted based on the existence
- * of a document in the /roles_admin/{userId} collection. Public read access is granted for
- * golden templates.
- *
- * @data_structure:
- *   - /users/{userId}: Stores user profiles.
- *   - /golden_templates/{goldenTemplateId}: Stores golden templates (publicly readable).
- *   - /users/{userId}/verifications/{verificationId}: Stores verification requests.
- *   - /users/{userId}/activity_logs/{activityLogId}: Stores activity logs.
- *   - /roles_admin/{userId}: Indicates admin roles (document existence grants admin privileges).
- *
- * @key_security_decisions:
- *   - User listing is implicitly denied (no top-level /users collection).
- *   - Golden templates are publicly readable but only modifiable by admins.
- *   - Path-based ownership is enforced for all user-related data.
- *   - Data validation is relaxed to allow rapid prototyping.
- *
- * @denormalization_for_authorization:
- *   - Ownership is embedded in the document path (e.g., /users/{userId}/verifications/{verificationId}),
- *     avoiding the need for get() calls to parent documents.
- */
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Defines if a user is signed in.
-     * @path N/A
-     * @allow N/A
-     * @deny N/A
-     * @principle Core Identity Check
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the request is made by the owner of the resource.
-     * @path N/A
-     * @allow N/A
-     * @deny N/A
-     * @principle Path-based Ownership
-     */
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    /**
-     * @description Checks if the user is an existing owner (signed in and owns the resource).
-     * @path N/A
-     * @allow N/A
-     * @deny N/A
-     * @principle Ensures existence for destructive operations.
-     */
-    function isExistingOwner(userId) {
-      return isSignedIn() && isOwner(userId) && resource != null;
-    }
-
-    /**
-     * @description Checks if the user has admin privileges based on document existence.
-     * @path /roles_admin/{userId}
-     * @allow N/A
-     * @deny N/A
-     * @principle Admin role check
-     */
-    function isAdmin() {
-        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    /**
-     * @description Security rules for user profiles.
-     * @path /users/{userId}
-     * @allow (create) - Signed-in user with matching userId can create their profile.
-     * @allow (get, update, delete) - Signed-in user with matching userId can get, update, or delete their profile.
-     * @deny (create) - User tries to create a profile with a mismatched userId.
-     * @deny (get, update, delete) - User tries to access another user's profile.
-     * @principle Enforces document ownership for user profiles.
-     */
+    // Users can read/write their own data
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow read, write: if request.auth.uid == userId;
+      
+      // Users can manage their own verifications and activity logs
+      match /verifications/{verificationId} {
+        allow read, write, create, delete: if request.auth.uid == userId;
+      }
+      match /activity_logs/{activityLogId} {
+        allow read, write, create, delete: if request.auth.uid == userId;
+      }
     }
 
-    /**
-     * @description Security rules for golden templates.
-     * @path /golden_templates/{goldenTemplateId}
-     * @allow (get, list) - Any user can read golden templates.
-     * @allow (create, update, delete) - Only admins can create, update, or delete golden templates.
-     * @deny (create, update, delete) - Non-admin users cannot modify golden templates.
-     * @principle Public read, admin-only write for golden templates.
-     */
-    match /golden_templates/{goldenTemplateId} {
-      allow get, list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+    // Golden templates are readable by any authenticated user, but only writable by admins
+    match /golden_templates/{templateId} {
+      allow read: if request.auth != null;
+      allow write: if get(/databases/$(database)/documents/roles_admin/$(request.auth.uid)).data.role == 'admin';
     }
 
-    /**
-     * @description Security rules for verification requests.
-     * @path /users/{userId}/verifications/{verificationId}
-     * @allow (create) - Signed-in user with matching userId can create a verification request.
-     * @allow (get, list, update, delete) - Signed-in user with matching userId can get, list, update, or delete their verification requests.
-     * @deny (create) - User tries to create a verification request with a mismatched userId.
-     * @deny (get, list, update, delete) - User tries to access another user's verification requests.
-     * @principle Enforces document ownership for verification requests.
-     */
-    match /users/{userId}/verifications/{verificationId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
+    // Admin roles collection
+    match /roles_admin/{userId} {
+      allow read, write: if get(/databases/$(database)/documents/roles_admin/$(request.auth.uid)).data.role == 'admin';
     }
-
-    /**
-     * @description Security rules for activity logs.
-     * @path /users/{userId}/activity_logs/{activityLogId}
-     * @allow (create) - Signed-in user with matching userId can create an activity log.
-     * @allow (get, list, update, delete) - Signed-in user with matching userId can get, list, update, or delete their activity logs.
-     * @deny (create) - User tries to create an activity log with a mismatched userId.
-     * @deny (get, list, update, delete) - User tries to access another user's activity logs.
-     * @principle Enforces document ownership for activity logs.
-     */
-    match /users/{userId}/activity_logs/{activityLogId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
-    }
-
-     /**
-      * @description Grants admin privileges based on document existence.
-      * @path /roles_admin/{userId}
-      */
-     match /roles_admin/{userId} {
-        allow get: if isAdmin();
-        allow list: if false;
-        allow create: if isAdmin();
-        allow update: if false; // No need to update, just existence matters
-        allow delete: if isAdmin();
-     }
   }
 }
