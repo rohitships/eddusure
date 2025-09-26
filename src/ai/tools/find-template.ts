@@ -31,13 +31,13 @@ export const findGoldenTemplate = ai.defineTool(
     input: z.object({
       universityName: z.string().describe('The name of the university to search for. Should be an exact match.'),
     }),
-    output: GoldenTemplateSchema,
+    output: GoldenTemplateSchema.nullable(),
   },
   async (input) => {
     // Add a guard clause to prevent invalid queries
     if (!input.universityName || typeof input.universityName !== 'string') {
       console.log('Invalid or missing universityName provided to findGoldenTemplate tool. Returning null.');
-      throw new Error('Invalid or missing universityName provided to findGoldenTemplate tool.');
+      return null;
     }
 
     console.log(`Searching for template with universityName: ${input.universityName}`);
@@ -53,7 +53,7 @@ export const findGoldenTemplate = ai.defineTool(
         const querySnapshot = await getDocs(q);
         if (querySnapshot.empty) {
             console.log('No matching documents found.');
-            throw new Error('No golden template found for the given university. Please proceed without it.');
+            return null;
         }
         
         const doc = querySnapshot.docs[0];
@@ -70,13 +70,14 @@ export const findGoldenTemplate = ai.defineTool(
             return validationResult.data;
         } else {
             console.error('Firestore data validation error:', validationResult.error);
-            throw new Error('The retrieved golden template data was malformed.');
+            // Return null if data is malformed
+            return null;
         }
 
     } catch (error) {
         console.error("Error in findGoldenTemplate tool:", error);
-        // Re-throw the error so the AI model is aware of the failure.
-        throw error;
+        // If there's an error during the query, return null
+        return null;
     }
   }
 );
