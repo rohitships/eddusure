@@ -166,11 +166,11 @@ export default function TrustCheckPage() {
         <SidebarInset>
           <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <AnalyticsDashboard />
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-              <div className="lg:col-span-3">
+            <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
+              <div className="xl:col-span-1">
                 <UploadOrScan onAnalyze={handleAnalysis} isLoading={isLoading} onScan={handleScannedData} />
               </div>
-              <div className="lg:col-span-4">
+              <div className="lg:col-span-1 xl:col-span-2">
                 <ResultsDisplay
                   isLoading={isLoading}
                   result={analysisResult}

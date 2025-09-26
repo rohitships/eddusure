@@ -154,7 +154,7 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="grid gap-4 md:gap-8">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Verifications</CardTitle>
@@ -196,8 +196,8 @@ export default function AnalyticsDashboard() {
                 </CardContent>
             </Card>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="lg:col-span-4">
+        <div className="grid grid-cols-1 gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
+            <Card className="xl:col-span-2">
                 <CardHeader>
                     <CardTitle>Verification Trend</CardTitle>
                     <CardDescription>Number of verifications over the last days.</CardDescription>
@@ -214,7 +214,7 @@ export default function AnalyticsDashboard() {
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
-            <Card className="lg:col-span-3">
+            <Card className="lg:col-span-1 xl:col-span-1">
                 <CardHeader>
                     <CardTitle>Verification Status</CardTitle>
                     <CardDescription>Breakdown of all verification results by status.</CardDescription>
@@ -246,5 +246,3 @@ export default function AnalyticsDashboard() {
     </div>
   );
 }
-
-    
