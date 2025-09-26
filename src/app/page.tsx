@@ -145,7 +145,7 @@ export default function TrustCheckPage() {
   }
 
   return (
-    <div className="bg-muted/40">
+    <>
       <Sidebar>
         <SidebarContent>
           <SidebarMenu>
@@ -180,6 +180,6 @@ export default function TrustCheckPage() {
             <ActivityTracker />
         </main>
       </SidebarInset>
-    </div>
+    </>
   );
 }
